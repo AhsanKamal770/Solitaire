@@ -1,0 +1,228 @@
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: sans-serif;
+}
+
+#navbar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+    padding: 12px 25px;
+    background-image: url("https://www.transparenttextures.com/patterns/wood-pattern.png");
+    background-color: #8B5A2B;  /* fallback color */
+    background-size: cover;
+    background-repeat: repeat;
+    color: white;
+    font-family: Arial, sans-serif;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+    border-bottom: 3px solid #5A3E1B;
+}
+
+#navbar > div {
+    margin: 0 10px;
+}
+
+#navbar button {
+    background-color: #DEB887;  
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    color: #3e2723;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+}
+
+#navbar button:hover {
+    background-color: #C19A6B; 
+    transform: scale(1.05);
+}
+
+#ScoreDiv, #Time {
+    margin-left: auto; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(222, 184, 135, 0.25);
+    border: 2px solid #C19A6B;
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #fff8dc;
+    text-shadow: 1px 1px 2px #000;
+    min-width: 200px;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
+}
+
+#Time {
+    display: flex;
+    font-size: 1.4rem;
+    color: #ffd700;
+    border-color: #b8860b;
+    margin-right: 15px;
+    
+}
+
+#ScoreDiv {
+    color: #fff8dc;
+    border-color: #a0522d;
+    margin-left: 45vw;
+}
+
+
+
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-template-rows: repeat(6, 20vh);
+    justify-content: space-between;
+    padding-top: 15px;                  
+    padding-left: 100px;
+    padding-right: 100px;
+    width: 99vw;
+    height: 100vh;                     
+    background-color: green;
+}
+
+.slot ,.stock-supplementary-slot, .upper-slot,.no-slot {
+    background-color: greenyellow;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    border-radius: 5px;
+    width: 7.5vw;
+    height: 18vh;
+    border-style: solid;
+    border-width: 1px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+     
+}
+
+.cards{
+    width: 7.5vw;
+    height: 18vh;
+}
+
+.slot ,.slot-supplementary-slot, .upper-slot, .no-slot{
+    position: relative;
+    background-color: greenyellow;
+    border: 1px solid #ccc;
+    width: 7.5vw;
+    height: 18vh;
+    border-style: solid;
+    border-width: 1px;
+    border-color: black;
+    border-radius: 5px;
+    transition: 0.3s;
+}
+
+.slot-supplementary-slot,.no-slot{
+    background-color: green; 
+    border-style: none; 
+}
+
+.StockCards, .SlotCards{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 7.5vw;
+    height: 18vh;
+    border: 1px solid #818181;
+    border-radius: 5px;
+    text-align: center;
+    line-height: 18vh;
+    font-weight: bold;
+    transition: transform 0.2s ease;
+}
+.StockCards{
+    background-image: url("Me.jpg");
+    background-size: cover;
+    background-color: greenyellow;
+
+}
+
+
+.face-down{
+     background-image: url("Me.jpg");
+    background-size: cover;
+    background-color: greenyellow;
+    color: black;
+    transform: rotateY(180deg);
+}
+
+.face-up{
+    background-color: whitesmoke;
+    color: transparent;
+    background-image: none;
+    transform: rotateY(0deg);
+}
+
+.StockCards.face-up{
+    border-style: solid;
+    border-width: 1px;
+    border-color: black;
+    border-radius: 5px;
+}
+
+.slot .SlotCards:nth-child(1) { top: 0; }
+.slot .SlotCards:nth-child(2) { top: 25px; }
+.slot .SlotCards:nth-child(3) { top: 50px; }
+.slot .SlotCards:nth-child(4) { top: 75px; }
+.slot .SlotCards:nth-child(5) { top: 100px; }
+.slot .SlotCards:nth-child(6) { top: 125px; }
+.slot .SlotCards:nth-child(7) { top: 150px; }
+.slot .cards:nth-child(n) {
+    top: calc((var(--i, 0)) * 20px);
+    
+}
+
+
+.solve-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: gold;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+.win-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.win-popup {
+  background: white;
+  border-radius: 15px;
+  padding: 30px;
+  text-align: center;
+  animation: popup 0.5s ease-out;
+}
+
+@keyframes popup {
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
