@@ -672,6 +672,7 @@ document.querySelectorAll('.slot, .slot-supplementary-slot, .upper-slot').forEac
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
       releaseStack(draggedStack, originalSlot);
+      checkWinCondition();
     }, { once: true });
   });
 });
@@ -1186,7 +1187,6 @@ function startTimer() {
     const minutes = Math.floor(elapsed / 60);
     const seconds = elapsed % 60;
 
-    console.log("Updating time:", minutes, seconds); // debug
     timeEl.textContent = `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
   }, 1000);
 }
@@ -1196,6 +1196,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function stopTimer() {
   clearInterval(timerInterval);
 }
+
 
 // --- Score ---
 let score = 0;
@@ -1230,88 +1231,43 @@ document.getElementById('New-Game').addEventListener('click', () => {
 });
 
 
-function checkForAutoSolve() {
-  const stockSlot = document.querySelector('.slot'); 
-  const tableauSlots = Array.from(document.querySelectorAll('.slot.tableau'));
-  const allFaceUp = tableauSlots.every(slot => {
-    const cards = slot.querySelectorAll('.SlotCards');
-    return Array.from(cards).every(card => !card.classList.contains('face-down'));
+function checkWinCondition() {
+  // Select all foundation (upper-slot) elements
+  const foundations = document.querySelectorAll('.upper-slot');
+  
+  // Count total cards placed in all foundation slots
+  let totalCards = 0;
+  foundations.forEach(slot => {
+    totalCards += slot.childElementCount;
   });
 
-  // if stock empty and all tableau cards are face-up
-  if (stockQueue.isEmpty() && allFaceUp) {
-    showSolveOption();
+  // If all 52 cards are in foundation slots -> show win overlay
+  if (totalCards === 52) {
+    showWinOverlay();
+  }
+  else{
+    console.log(totalCards);
   }
 }
 
-function showSolveOption() {
-  if (document.querySelector('#solve-btn')) return; // already exists
-
-  const btn = document.createElement('button');
-  btn.id = 'solve-btn';
-  btn.textContent = 'Solve Game';
-  btn.className = 'solve-button';
-  btn.addEventListener('click', autoSolve);
-  document.body.appendChild(btn);
-}
-
-async function autoSolve() {
-  const foundations = Array.from(document.querySelectorAll('.upper-slot'));
-  const tableauSlots = Array.from(document.querySelectorAll('.slot.tableau'));
-
-  const allCards = [];
-  tableauSlots.forEach(slot => {
-    slot.querySelectorAll('.SlotCards').forEach(card => {
-      allCards.push(card);
-    });
-  });
-
-  // Sort by rank so A→K order (you can enhance this)
-  const rankOrder = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-  allCards.sort((a, b) => 
-    rankOrder.indexOf(a.dataset.rank) - rankOrder.indexOf(b.dataset.rank)
-  );
-
-  for (let card of allCards) {
-    const targetFoundation = foundations.find(f => 
-      f.dataset.suit === card.dataset.suit
-    );
-    if (targetFoundation) {
-      moveCardToFoundation(card, targetFoundation);
-      await new Promise(r => setTimeout(r, 200)); // delay for animation
-    }
-  }
-
+function showWinOverlay() {
   stopTimer();
-  showWinScreen();
-}
-
-function moveCardToFoundation(card, foundationSlot) {
-  foundationSlot.appendChild(card);
-  card.style.top = '0px';
-  card.style.left = '0px';
-  card.style.transform = 'scale(1)';
-}
-function stopTimer() {
-  if (window.timerInterval) clearInterval(window.timerInterval);
-}
-
-function showWinScreen() {
-  const overlay = document.createElement('div');
-  overlay.className = 'win-overlay';
-  overlay.innerHTML = `
+  const winOverlay = document.createElement('div');
+  winOverlay.classList.add('win-overlay');
+  winOverlay.innerHTML = `
     <div class="win-popup">
       <h2>🎉 Congratulations!</h2>
       <p>You solved the game!</p>
-      <p>Time: <b>${document.querySelector('#timer').textContent}</b></p>
-      <p>Score: <b>${calculateScore()}</b></p>
+      <p>Time: <b>${document.querySelector('#Time').innerText}</b></p>
+      <p><b>${parseInt(document.getElementById('ScoreDiv').innerText) + 100}</b></p>
       <button onclick="window.location.reload()">Play Again</button>
     </div>
   `;
-  document.body.appendChild(overlay);
-}
+  document.body.appendChild(winOverlay);
 
-function calculateScore() {
-  const foundationCards = document.querySelectorAll('.upper-slot .SlotCards');
-  return foundationCards.length * 10; // example scoring
+  // Optional fade-out animation (enable later)
+  setTimeout(() => {
+    winOverlay.classList.add('fade-out');
+    setTimeout(() => winOverlay.remove(), 500);
+  }, 3000);
 }
