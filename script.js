@@ -1259,15 +1259,15 @@ function showWinOverlay() {
       <h2>🎉 Congratulations!</h2>
       <p>You solved the game!</p>
       <p>Time: <b>${document.querySelector('#Time').innerText}</b></p>
-      <p><b>${parseInt(document.getElementById('ScoreDiv').innerText) + 100}</b></p>
+      <p><b>${parseInt(document.getElementById('#ScoreDiv').innerText)}</b></p>
       <button onclick="window.location.reload()">Play Again</button>
     </div>
   `;
   document.body.appendChild(winOverlay);
 
   // Optional fade-out animation (enable later)
-  setTimeout(() => {
-    winOverlay.classList.add('fade-out');
-    setTimeout(() => winOverlay.remove(), 500);
-  }, 3000);
+  // setTimeout(() => {
+  //   winOverlay.classList.add('fade-out');
+  //   setTimeout(() => winOverlay.remove(), 500);
+  // }, 3000);
 }
