@@ -9,24 +9,45 @@ body {
 }
 
 #navbar {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 20px;
-    padding: 12px 25px;
-    background-image: url("https://www.transparenttextures.com/patterns/wood-pattern.png");
-    background-color: #8B5A2B;  /* fallback color */
-    background-size: cover;
-    background-repeat: repeat;
-    color: white;
-    font-family: Arial, sans-serif;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-    border-bottom: 3px solid #5A3E1B;
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* important */
+  gap: 20px;
+  padding: 12px 25px;
+  background-image: url("https://www.transparenttextures.com/patterns/wood-pattern.png");
+  background-color: #8B5A2B;
+  background-size: cover;
+  background-repeat: repeat;
+  color: white;
+  font-family: Arial, sans-serif;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+  border-bottom: 3px solid #5A3E1B;
 }
 
 #navbar > div {
     margin: 0 10px;
 }
+
+#logo {
+  font-family: 'Georgia', serif;
+  font-size: 1.8rem;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: #ffd700;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  background: linear-gradient(to bottom, #fff8dc, #ffd700);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  cursor: default;
+  transition: transform 0.3s ease, text-shadow 0.3s ease;
+}
+
+#logo:hover {
+  transform: scale(1.05);
+  text-shadow: 3px 3px 6px rgba(255, 215, 0, 0.6);
+}
+
 
 #navbar button {
     background-color: #DEB887;  
@@ -50,7 +71,6 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(222, 184, 135, 0.25);
     border: 2px solid #C19A6B;
     border-radius: 8px;
     padding: 6px 14px;
@@ -63,20 +83,33 @@ body {
 }
 
 #Time {
-    display: flex;
-    font-size: 1.4rem;
-    color: #ffd700;
-    border-color: #b8860b;
-    margin-right: 15px;
-    
+  flex: 1; /* take remaining space */
+  display: flex;
+  justify-content: center; /* center horizontally */
+  font-size: 1.4rem;
+  color: #ffd700;
+  border: none  ;
+  border-radius: 0px;
+  padding-right: 15vw;
+  background-color: none;
+  text-shadow: 1px 1px 2px #000;
+  box-shadow: none;
 }
 
+/* Right-align Score */
 #ScoreDiv {
-    color: #fff8dc;
-    border-color: #a0522d;
-    margin-left: 45vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(222, 184, 135, 0.25);
+  border: 2px solid #a0522d;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #fff8dc;
+  text-shadow: 1px 1px 2px #000;
 }
-
 
 
 .grid-container {
@@ -84,16 +117,16 @@ body {
     grid-template-columns: repeat(7, 1fr);
     grid-template-rows: repeat(6, 20vh);
     justify-content: space-between;
-    padding-top: 15px;                  
-    padding-left: 100px;
+    padding-top: 20px;                  
+    padding-left: 10vw;
     padding-right: 100px;
     width: 99vw;
     height: 100vh;                     
-    background-color: green;
+    background-color: darkgreen;
 }
 
 .slot ,.stock-supplementary-slot, .upper-slot,.no-slot {
-    background-color: greenyellow;
+    background-color: green;
     color: white;
     display: flex;
     justify-content: center;
@@ -119,7 +152,7 @@ body {
 
 .slot ,.slot-supplementary-slot, .upper-slot, .no-slot{
     position: relative;
-    background-color: greenyellow;
+    background-color: green;
     border: 1px solid #ccc;
     width: 7.5vw;
     height: 18vh;
@@ -129,9 +162,12 @@ body {
     border-radius: 5px;
     transition: 0.3s;
 }
-
+.upper-slot{
+    border-style: dashed;
+    font-size: 50px;
+}
 .slot-supplementary-slot,.no-slot{
-    background-color: green; 
+    background-color: darkgreen; 
     border-style: none; 
 }
 
@@ -178,13 +214,13 @@ body {
     border-radius: 5px;
 }
 
-.slot .SlotCards:nth-child(1) { top: 0; }
-.slot .SlotCards:nth-child(2) { top: 25px; }
-.slot .SlotCards:nth-child(3) { top: 50px; }
-.slot .SlotCards:nth-child(4) { top: 75px; }
-.slot .SlotCards:nth-child(5) { top: 100px; }
-.slot .SlotCards:nth-child(6) { top: 125px; }
-.slot .SlotCards:nth-child(7) { top: 150px; }
+.slot .StockCards:nth-child(1) { top: 0; }
+.slot .StockCards:nth-child(2) { top: 25px; }
+.slot .StockCards:nth-child(3) { top: 50px; }
+.slot .StockCards:nth-child(4) { top: 75px; }
+.slot .StockCards:nth-child(5) { top: 100px; }
+.slot .StockCards:nth-child(6) { top: 125px; }
+.slot .StockCards:nth-child(7) { top: 150px; }
 .slot .cards:nth-child(n) {
     top: calc((var(--i, 0)) * 20px);
     
@@ -225,4 +261,70 @@ body {
 @keyframes popup {
   from { transform: scale(0.5); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
+}
+
+/* 📱 Responsive Design for Mobile Devices */
+@media (max-width: 768px) {
+  #navbar {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    text-align: center;
+  }
+
+  #navbar button {
+    padding: 6px 12px;
+    font-size: 0.9rem;
+  }
+
+  #logo {
+    font-size: 1.5rem;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+  }
+
+  #Time, #ScoreDiv {
+    min-width: auto;
+    font-size: 1rem;
+    padding: 4px 10px;
+    margin: 4px 0;
+  }
+
+  .grid-container {
+    grid-template-columns: repeat(4, 1fr); /* reduce columns */
+    grid-template-rows: auto;
+    padding: 10px;
+    width: 100%;
+    height: auto;
+    justify-items: center;
+  }
+
+  .slot, .slot-supplementary-slot, .upper-slot, .no-slot, .cards {
+    width: 20vw;
+    height: 15vh;
+  }
+
+  .StockCards, .SlotCards {
+    width: 20vw;
+    height: 15vh;
+    line-height: 15vh;
+  }
+
+  .slot .StockCards:nth-child(n) {
+    top: calc(var(--i, 0) * 12px); /* tighter stacking for mobile */
+  }
+
+  .solve-button {
+    bottom: 15px;
+    right: 15px;
+    font-size: 1rem;
+    padding: 8px 16px;
+  }
+
+  .win-popup {
+    width: 85%;
+    padding: 20px;
+    font-size: 0.95rem;
+  }
 }

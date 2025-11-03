@@ -103,6 +103,15 @@ class List {
     return false;
   }
 
+  size() {
+    let temp = this.head;
+    let size = 0;
+    while (temp) {
+      size += 1;
+      temp = temp.next;
+    }
+    return size;
+  }
 
   displayList() {
     let temp = this.head;
@@ -158,6 +167,19 @@ class List {
     this.head = prev;
     console.log("List reversed.");
     return this.head;
+  }
+
+  getLastNode() {
+    if (!this.head) {
+      console.log("List is empty.");
+      return null;
+    }
+
+    let temp = this.head;
+    while (temp.next) temp = temp.next;
+
+    console.log("Last node:", temp.data);
+    return temp;
   }
 
   sortList(list) {
@@ -306,6 +328,7 @@ class Stack {
       return null;
     }
     const value = this.arr[this.index];
+    this.arr[this.index] = null;
     this.index--;
     return value;
   }
@@ -362,6 +385,7 @@ class Queue {
     for (let i = 0; i < this.index; i++) {
       this.arr[i] = this.arr[i + 1];
     }
+    this.arr[this.index] = null;
     this.index--;
     return val;
   }
@@ -399,7 +423,6 @@ class Queue {
   }
 }
 
-
 class Card {
   constructor(suit, rank, faceUp = false) {
     this.suit = suit;
@@ -426,7 +449,7 @@ class Card {
       this.element.style.backgroundImage = `url('Me.jpg')`;
     }
 
-    this.element.classList.add(this instanceof StockCard ? 'StockCards' : 'SlotCards');
+    this.element.classList.add('StockCards');
   }
 
   flipUp() {
@@ -467,7 +490,7 @@ for (let s of suits) {
   for (let r of ranks) {
     const card = new StockCard(s, r, false);
     deckList.insertAtEnd(card); // linked list storage
-    cardPositions.set(card, { pile: null, faceUp: false });
+    cardPositions.set(card, { pile: null, pileIndex: 0 });
   }
 }
 // Convert linked list to array
@@ -555,17 +578,12 @@ do {
 
   valid = isValidDeck(deckArray);
 
-  // Optional safety: stop if too many tries
-  if (attempts > 1000) {
-    console.warn("Could not find valid shuffle after 1000 attempts.");
-    break;
-  }
-
 } while (!valid);
 
 // --- Stockpile Queue ---
-const stockQueue = new Queue(52);
-deckArray.forEach(card => stockQueue.enqueue(card));
+const tempQueue = new Queue(52);
+const stockQueue = new Queue(24);
+deckArray.forEach(card => tempQueue.enqueue(card));
 
 // --- Tableau Stacks & Linked Lists ---
 const tableauStacks = [];
@@ -586,35 +604,37 @@ for (let i = 0; i < 7; i++) {
 // --- Deal cards ---
 for (let i = 0; i < 7; i++) {
   for (let j = 0; j <= i; j++) {
-    const card = stockQueue.dequeue();
+    const card = tempQueue.dequeue();
     tableauStacks[i].push(card);
     tableauLists[i].insertAtEnd(card);
-    cardPositions.get(card).pile = tableauStacks[i];
+    cardPositions.get(card).pile = tableauLists[i];
+    cardPositions.get(card).pileIndex = i;
     const slot = tableauSlots[i];
     slot.appendChild(card.element);
     card.element.style.top = `${j * 25}px`;
-    if (j === i) { card.flipUp(); cardPositions.get(card).faceUp = true; }
+    if (i === j)
+      card.flipUp()
   }
 }
 
-// Remaining go to stock pile DOM
-while (!stockQueue.isEmpty()) {
-  const card = stockQueue.dequeue();
+// Remaining go to stock pile 
+while (!tempQueue.isEmpty()) {
+  const card = tempQueue.dequeue();
+  stockQueue.enqueue(card);
   stockSlot.appendChild(card.element);
-  cardPositions.get(card).pile = stockQueue;
   card.element.style.position = 'absolute';
   card.element.style.left = '0';
   card.element.style.top = '0';
 }
 
 // --- Drag & Drop Logic ---
-// 1. Decide which cards to drag
+// 1. Let Cards drag
 function getDraggedStack(card) {
   const originalSlot = card.parentElement;
-  const allCards = Array.from(originalSlot.querySelectorAll('.SlotCards, .StockCards'));
+  const allCards = Array.from(originalSlot.querySelectorAll('.StockCards'));
   const draggedIndex = allCards.indexOf(card);
   if (originalSlot.classList.contains('slot-supplementary-slot')) {
-    // Waste pile: only top card
+    // Waste pile: only visible cards
     return [card];
   } else {
     // Tableau: all face-up cards starting from dragged card
@@ -641,133 +661,23 @@ function releaseStack(draggedStack, originalSlot) {
 
   // Flip next card in original slot
   if (placed && placed !== originalSlot) {
-    const remaining = Array.from(originalSlot.querySelectorAll('.SlotCards, .StockCards'));
+
+    updateDataStructures(originalSlot, placed, draggedStack);
+    const remaining = Array.from(originalSlot.querySelectorAll('.StockCards'));
     const next = remaining[remaining.length - 1];
     if (next && next.classList.contains('face-down')) {
       next.classList.remove('face-down');
+      next.cardInstance.faceUp = true;
       next.classList.add('face-up');
       next.style.backgroundImage = `url('cards/${next.dataset.rank}${next.dataset.suit}.png')`;
       next.style.backgroundSize = 'cover';
       next.style.backgroundPosition = 'center';
-      onFlipCard();
+      onFlipCard();  // Score 
     }
   }
 }
 
-// Event listener
-document.querySelectorAll('.slot, .slot-supplementary-slot, .upper-slot').forEach(slot => {
-  slot.addEventListener('mousedown', e => {
-    const card = e.target.closest('.SlotCards, .StockCards');
-    if (!card || !card.classList.contains('face-up')) return;
-
-    const originalSlot = card.parentElement;
-    const draggedStack = getDraggedStack(card);
-
-    moveStack(draggedStack, e.pageX, e.pageY);
-
-    function onMove(ev) { moveStack(draggedStack, ev.pageX, ev.pageY); }
-    document.addEventListener('mousemove', onMove);
-
-    document.addEventListener('mouseup', function onUp() {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-      releaseStack(draggedStack, originalSlot);
-      checkWinCondition();
-    }, { once: true });
-  });
-});
-
-// 1. Check if main card can be placed on a slot
-function canPlaceOnSlot(main, slot) {
-  const existing = Array.from(slot.querySelectorAll('.StockCards'));
-  const lastCard = existing[existing.length - 1];
-
-  // UPPER SLOT (foundation pile)
-  if (slot.classList.contains('upper-slot')) {
-    if (!lastCard) return main.dataset.rank === 'A'; // only Ace
-    const mainRank = getRankValue(main.dataset.rank);
-    const lastRank = getRankValue(lastCard.dataset.rank);
-    return main.dataset.suit === lastCard.dataset.suit && mainRank === lastRank + 1;
-
-  }
-
-  // TABLEAU
-  if (slot.classList.contains('slot')) {
-    if (!lastCard) return main.dataset.rank === 'K'; // only King
-    const mainRank = getRankValue(main.dataset.rank);
-    const lastRank = getRankValue(lastCard.dataset.rank);
-    const mainColor = getColor(main.dataset.suit);
-    const lastColor = getColor(lastCard.dataset.suit);
-    return mainRank === lastRank - 1 && mainColor !== lastColor;
-  }
-
-  return false;
-}
-
-// 2. Append stack to slot with proper positioning
-function appendStackToSlot(stack, slot) {
-  const existing = Array.from(slot.querySelectorAll('.SlotCards, .StockCards'));
-  let baseTop;
-
-  if (slot.classList.contains('upper-slot')) {
-    baseTop = 0; // foundation pile me no gap
-    onMoveToFoundation();
-  } else if (slot.classList.contains('slot-supplementary-slot')) {
-    baseTop = 0; // waste pile ke liye bhi 0
-  } else {
-    baseTop = existing.length * 25; // tableau me stacked offset
-  }
-
-  stack.forEach((c, i) => {
-    slot.appendChild(c);
-    c.style.position = 'absolute';
-    c.style.left = '0';
-    c.style.top = (baseTop + i * 25) + 'px';
-    c.style.zIndex = existing.length + i + 1;
-    c.style.display = 'block';
-  });
-}
-
-function updateSupplementarySlotDisplay(slot) {
-  // Cards ka order supplementaryList se decide karo
-  const orderedCards = [];
-  let temp = supplementaryList.getHead();
-  while (temp) {
-    const { rank, suit } = temp.data;
-    const card = Array.from(slot.querySelectorAll('.SlotCards, .StockCards'))
-      .find(c => c.dataset.rank === rank && c.dataset.suit === suit);
-    if (card) orderedCards.push(card);
-    temp = temp.next;
-  }
-
-  const total = orderedCards.length;
-  const visibleCount = 3;
-  const start = Math.max(0, total - visibleCount);
-
-  orderedCards.forEach((card, i) => {
-    card.style.position = 'absolute';
-    card.style.top = '0';
-    card.style.left = i >= start ? `${(i - start) * 20}px` : '0';
-    card.style.zIndex = i + 1;
-    card.style.display = 'block';
-  });
-}
-
-// 3. Return stack to original slot if move invalid
-function returnStackToOriginalSlot(stack, originalSlot) {
-  if (originalSlot.classList.contains('slot-supplementary-slot')) {
-    // Append stack first
-    stack.forEach(card => originalSlot.appendChild(card));
-    updateSupplementarySlotDisplay(originalSlot);
-  }
-  else {
-    appendStackToSlot(stack, originalSlot);
-  }
-}
-
-const moveHistory = [];
-
-// Modify placeStack function slightly:
+// 4. Places Dragging Stack:
 function placeStack(stack, originalSlot) {
   const slots = document.querySelectorAll('.slot, .slot-supplementary-slot, .upper-slot');
   const main = stack[0];
@@ -791,13 +701,13 @@ function placeStack(stack, originalSlot) {
       appendStackToSlot(stack, slot);
       placed = slot;
 
-      // 🟢 Record move details including face states
+      // Record move details including face states
       const stateSnapshot = stack.map(card => ({
         card: card.cardInstance,
         wasFaceUp: card.classList.contains('face-up')
       }));
 
-      // ✅ Record if original slot's last card was flipped
+      // Record if original slot's last card was flipped
       const remaining = Array.from(originalSlot.querySelectorAll('.StockCards'));
       const next = remaining[remaining.length - 1];
       const nextWasFlipped = next && next.classList.contains('face-down');
@@ -811,54 +721,219 @@ function placeStack(stack, originalSlot) {
         nextWasFlipped
       });
 
-      // ✅ Supplementary slot se card gaya, list update karo
+      // Supplementary slot; Update supplementaryList
       if (originalSlot.classList.contains('slot-supplementary-slot')) {
         supplementaryList.deleteNode({
           rank: main.dataset.rank,
           suit: main.dataset.suit
         });
-        updateSupplementarySlotDisplay(originalSlot);
+        if (!stockQueue.isEmpty()) {
+          const card = stockQueue.dequeue();
+          originalSlot.appendChild(card.element);
+          card.element.classList.remove('face-down');
+          card.element.classList.add('face-up');
+          card.element.style.backgroundImage = `url('cards/${card.rank}${card.suit}.png')`;
+          card.element.style.backgroundSize = 'cover';
+          card.element.style.backgroundPosition = 'center';
+          card.faceUp = true;
+
+          supplementaryList.insertAtEnd({
+            rank: card.rank,
+            suit: card.suit
+          });
+          updateSupplementarySlotDisplay(originalSlot);
+        }
       }
     }
-  });
-
+  }
+  );
   if (!placed && originalSlot) returnStackToOriginalSlot(stack, originalSlot);
   return placed || originalSlot;
 }
 
-function recycleStock() {
-  const stockSlot = document.querySelector('.slot');
-  const supplementarySlot = document.querySelector('.slot-supplementary-slot');
-  const stockCards = Array.from(stockSlot.querySelectorAll('.StockCards'));
+// 4 (1). Check if main card can be placed on a slot
+function canPlaceOnSlot(main, slot) {
+  const existing = Array.from(slot.querySelectorAll('.StockCards'));
+  const lastCard = existing[existing.length - 1];
 
-  if (stockCards.length > 0) {
+  // Upper Slots (foundation)
+  if (slot.classList.contains('upper-slot')) {
+    if (!lastCard) return main.dataset.rank === 'A' && main.dataset.suit === slot.innerText; // only Ace
+    const mainRank = getRankValue(main.dataset.rank);
+    const lastRank = getRankValue(lastCard.dataset.rank);
+    return main.dataset.suit === lastCard.dataset.suit && mainRank === lastRank + 1;
+
+  }
+
+  // Lower Slots (tableau)
+  if (slot.classList.contains('slot')) {
+    if (!lastCard) return main.dataset.rank === 'K'; // only King
+    const mainRank = getRankValue(main.dataset.rank);
+    const lastRank = getRankValue(lastCard.dataset.rank);
+    const mainColor = getColor(main.dataset.suit);
+    const lastColor = getColor(lastCard.dataset.suit);
+    return mainRank === lastRank - 1 && mainColor !== lastColor;
+  }
+
+  return false;
+}
+
+// 4 (2) Append stack to slot with proper positioning
+function appendStackToSlot(stack, slot) {
+  const existing = Array.from(slot.querySelectorAll('.StockCards'));
+  let baseTop;
+
+  if (slot.classList.contains('upper-slot')) {
+    baseTop = 0; // foundation pile me no gap
+    onMoveToFoundation();
+  } else if (slot.classList.contains('slot-supplementary-slot')) {
+    baseTop = 0; // waste pile ke liye bhi 0
+  } else {
+    baseTop = existing.length * 25; // tableau me stacked offset
+  }
+
+  stack.forEach((c, i) => {
+    slot.appendChild(c);
+    c.style.position = 'absolute';
+    c.style.left = '0';
+    c.style.top = (baseTop + i * 25) + 'px';
+    c.style.zIndex = existing.length + i + 1;
+    c.style.display = 'block';
+  });
+}
+
+
+// Data Structures updation after a valid move
+function updateDataStructures(fromSlot, toSlot, stack) {
+  const fromIndex = tableauSlots.indexOf(fromSlot);
+  const toIndex = tableauSlots.indexOf(toSlot);
+  if (toSlot.classList.contains('upper-slot')) {
+    cardPositions.set(stack[0].cardInstance, {
+      pile: null,
+      pileIndex: toIndex,
+    });
+    // console.log(cardPositions);
+    return;
+  }
+  if (fromIndex !== -1) {
+    stack.forEach(card => tableauLists[fromIndex].deleteNode(card.cardInstance));
+    stack.forEach(() => tableauStacks[fromIndex].pop());
+  }
+  if (toIndex !== -1) {
+    let cardIndex = 0;
+    stack.forEach(card => {
+      tableauLists[toIndex].insertAtEnd(card.cardInstance);
+      tableauStacks[toIndex].push(card.cardInstance);
+
+      // ✅ Update card position after move
+      cardPositions.set(card.cardInstance, {
+        pile: tableauLists[toIndex],
+        pileIndex: toIndex,
+      });
+    });
+  }
+  console.log(cardPositions);
+}
+// Event listener  
+document.querySelectorAll('.slot, .slot-supplementary-slot, .upper-slot').forEach(slot => {
+  slot.addEventListener('mousedown', e => {
+    const card = e.target.closest('.StockCards');
+    if (!card || !card.cardInstance || !card.cardInstance.faceUp) return;
+
+    const originalSlot = card.parentElement;
+    const draggedStack = getDraggedStack(card);
+
+    moveStack(draggedStack, e.pageX, e.pageY);
+
+    function onMove(ev) { moveStack(draggedStack, ev.pageX, ev.pageY); }
+    document.addEventListener('mousemove', onMove);
+
+    document.addEventListener('mouseup', function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      releaseStack(draggedStack, originalSlot);
+      
+      checkWinCondition();
+    }, { once: true });
+  });
+});
+// console.log(cardPositions);
+
+function updateSupplementarySlotDisplay(slot) {
+
+  // Decide Order via Supplementary List
+  const orderedCards = [];
+  let temp = supplementaryList.getHead();
+  while (temp) {
+    const { rank, suit } = temp.data;
+    const card = Array.from(slot.querySelectorAll('.StockCards'))
+      .find(c => c.dataset.rank === rank && c.dataset.suit === suit);
+    if (card) orderedCards.push(card);
+    temp = temp.next;
+  }
+
+  const total = orderedCards.length;
+  const visibleCount = 3;
+  const start = Math.max(0, total - visibleCount);
+
+  orderedCards.forEach((card, i) => {
+    card.style.position = 'absolute';
+    card.style.top = '0';
+    card.style.left = i >= start ? `${(i - start) * 20}px` : '0';
+    card.style.zIndex = i + 1;
+    card.style.display = 'block';
+  });
+}
+
+// 3. Return stack to original slot if move invalid
+function returnStackToOriginalSlot(stack, originalSlot) {
+  if (originalSlot.classList.contains('slot-supplementary-slot')) {
+
+    // Append stack first
+    stack.forEach(card => originalSlot.appendChild(card));
+    updateSupplementarySlotDisplay(originalSlot);
+  }
+  else {
+    appendStackToSlot(stack, originalSlot);
+  }
+}
+
+const moveHistory = [];  // For Undo Functionality (In Future)
+
+function recycleStock() {
+  const supplementarySlot = document.querySelector('.slot-supplementary-slot');
+  const stockSlot = document.querySelector('.slot'); // ensure defined
+
+  if (!stockQueue.isEmpty()) {
     const drawCount = 3;
     for (let i = 0; i < drawCount; i++) {
-      const card = stockCards.pop();
-      supplementarySlot.appendChild(card);
-      card.classList.remove('face-down');
-      card.classList.add('face-up');
-      card.style.backgroundImage = `url('cards/${card.dataset.rank}${card.dataset.suit}.png')`;
+      const card = stockQueue.dequeue();
+      supplementarySlot.appendChild(card.element);
+      card.flipUp();
+
+      // Update Supplementary list
       supplementaryList.insertAtEnd({
-        rank: card.dataset.rank,
-        suit: card.dataset.suit
+        rank: card.rank,
+        suit: card.suit
       });
+
       updateSupplementarySlotDisplay(supplementarySlot);
     }
     return;
   }
 
+  // If stockQueue empty, recycle supplementary cards
   const supplementaryCards = Array.from(supplementarySlot.querySelectorAll('.StockCards'));
   if (supplementaryCards.length > 0) {
-    supplementaryCards.reverse().forEach((card, i) => {
-      stockSlot.appendChild(card);
-      card.classList.remove('face-up');
-      card.classList.add('face-down');
-      card.style.backgroundImage = `url('Me.jpg')`;
-      card.style.position = 'absolute';
-      card.style.left = '0';
-      card.style.top = '0';
-      card.style.zIndex = i + 1;
+    supplementaryCards.forEach((domCard, i) => {
+      stockSlot.appendChild(domCard);
+      const cardObj = domCard.cardInstance; // reverse-link from DOM
+      stockQueue.enqueue(cardObj);
+      cardObj.flipDown();
+      domCard.style.position = 'absolute';
+      domCard.style.left = '0';
+      domCard.style.top = '0';
+      domCard.style.zIndex = i + 1;
     });
     supplementaryList.head = null;
     onRecycleStock();
@@ -889,6 +964,10 @@ document.querySelector("#New-Game").addEventListener("click", () => {
 });
 
 // document.querySelector("#navbar button:nth-child(1)")?.addEventListener("click", undoMove);
+document.querySelector("#Hint")?.removeEventListener("click", showHint);
+document.querySelector("#Hint")?.addEventListener("click", showHint);
+
+// In-Sha-Allah in future this option will also be available
 
 // function undoMove() {
 //   if (moveHistory.length === 0) {
@@ -930,10 +1009,8 @@ document.querySelector("#New-Game").addEventListener("click", () => {
 
 // Advanced hint system implementing the hierarchy you specified.
 
-document.querySelector("#Hint")?.removeEventListener("click", showHint);
-document.querySelector("#Hint")?.addEventListener("click", showHint);
 
-function highlight(cardEl, targetEl, duration = 700) {
+function highlight(cardEl, targetEl, duration = 675) {
   cardEl.style.boxShadow = '0 0 18px 6px rgba(255,215,0,0.95)';
   if (targetEl) targetEl.style.border = '3px solid rgba(255,215,0,0.95)';
   setTimeout(() => {
@@ -975,7 +1052,6 @@ function pickLowestRank(candidates) {
 
 function showHint() {
   const tableauSlots = Array.from(document.querySelectorAll('.slot')).slice(-7);
-  const stockSlot = document.querySelector('.slot'); // existing code uses the first .slot as stock
   const supplementarySlot = document.querySelector('.slot-supplementary-slot');
   const foundationSlots = Array.from(document.querySelectorAll('.upper-slot'));
 
@@ -990,7 +1066,7 @@ function showHint() {
 
   // 0️⃣ convenience: get all face-up stockcards in waste and all tableau face-up cards (including sequences)
   const wasteVisible = supplementarySlot ? Array.from(supplementarySlot.querySelectorAll('.StockCards.face-up')).slice(-3) : [];
-  
+
   function addKingToEmptyCandidate(cardEl, fromEl, dest) {
     const existing = Array.from(dest.querySelectorAll('.StockCards.face-up, .StockCards.face-down'));
     if (!existing[existing.length - 1] && cardEl.dataset.rank === 'K' && !cardEl.closest('.slot')) {
@@ -1036,7 +1112,7 @@ function showHint() {
     });
   });
 
-  // 2️⃣ Check waste top card (waste can go to tableau or foundation)
+  // 2️⃣ Check waste cards (waste can go to tableau or foundation)
   if (wasteVisible.length > 0) {
     wasteVisible.forEach(cardEl => {
       // waste -> foundation
@@ -1066,7 +1142,6 @@ function showHint() {
       const pick = pickLowestRank(candidates.toFoundation);
       if (!isReverseOfLastMove({ fromEl: pick.fromEl, toEl: pick.toEl })) {
         highlight(pick.cardEl, pick.toEl);
-        console.log("Hint: Move to foundation (tableau).");
         return;
       }
     }
@@ -1075,7 +1150,6 @@ function showHint() {
       const pick = candidates.wasteToFoundation[0]; // single top waste
       if (!isReverseOfLastMove({ fromEl: pick.fromEl, toEl: pick.toEl })) {
         highlight(pick.cardEl, pick.toEl);
-        console.log("Hint: Move waste card to foundation.");
         return;
       }
     }
@@ -1093,7 +1167,6 @@ function showHint() {
     });
     const pick = candidates.revealHidden.find(c => !isReverseOfLastMove({ fromEl: c.fromEl, toEl: c.toEl })) || candidates.revealHidden[0];
     highlight(pick.cardEl, pick.toEl);
-    console.log("Hint: Move to reveal a hidden card.");
     return;
   }
 
@@ -1108,7 +1181,6 @@ function showHint() {
     });
     const pick = candidates.tableauToTableau.find(c => !isReverseOfLastMove({ fromEl: c.fromEl, toEl: c.toEl })) || candidates.tableauToTableau[0];
     highlight(pick.cardEl, pick.toEl);
-    console.log("Hint: Move sequence between tableaus.");
     return;
   }
 
@@ -1122,7 +1194,6 @@ function showHint() {
     });
     const pick = candidates.wasteToTableau.find(c => !isReverseOfLastMove({ fromEl: c.fromEl, toEl: c.toEl })) || candidates.wasteToTableau[0];
     highlight(pick.cardEl, pick.toEl);
-    console.log("Hint: Play waste card to tableau.");
     return;
   }
 
@@ -1141,7 +1212,6 @@ function showHint() {
     });
     const pick = candidates.kingToEmpty.find(c => !isReverseOfLastMove({ fromEl: c.fromEl, toEl: c.toEl })) || candidates.kingToEmpty[0];
     highlight(pick.cardEl, pick.toEl);
-    console.log("Hint: Move King to empty column.");
     return;
   }
 
@@ -1153,7 +1223,6 @@ function showHint() {
     // highlight stock pile top card stack visually
     const top = stockCards[stockCards.length - 1];
     highlight(top, null);
-    console.log("Hint: Draw from stock.");
     return;
   }
 
@@ -1162,12 +1231,9 @@ function showHint() {
     // highlight the waste pile area
     const topWaste = wasteCards[wasteCards.length - 1];
     highlight(topWaste, stockSlot);
-    console.log("Hint: Redeal waste into stock.");
     return;
   }
 
-  // If still nothing
-  console.log("No hints available. No legal or useful moves found.");
 }
 
 // --- Timer ---
@@ -1179,7 +1245,6 @@ function startTimer() {
 
   startTime = Date.now();
   const timeEl = document.getElementById('Time');
-  console.log(timeEl);
   if (!timeEl) return console.error("No element with id 'Time' found");
 
   timerInterval = setInterval(() => {
@@ -1230,40 +1295,64 @@ document.getElementById('New-Game').addEventListener('click', () => {
   updateScore(0);
 });
 
-
 function checkWinCondition() {
-  // Select all foundation (upper-slot) elements
-  const foundations = document.querySelectorAll('.upper-slot');
-  
-  // Count total cards placed in all foundation slots
-  let totalCards = 0;
-  foundations.forEach(slot => {
-    totalCards += slot.childElementCount;
-  });
 
-  // If all 52 cards are in foundation slots -> show win overlay
-  if (totalCards === 52) {
-    showWinOverlay();
-  }
-  else{
-    console.log(totalCards);
+  if (stockQueue.isEmpty() && supplementaryList.size() === 0) {
+    let allFaceUp = true;
+
+    // Verify all tableau cards are face-up
+    let scoreCount = 0; 
+    for (let i = 0; i < 7 && allFaceUp; i++) {
+      let temp = tableauLists[i].getHead();
+      while (temp) {
+        scoreCount += 1;
+        if (!temp.data.faceUp) {
+          allFaceUp = false;
+          break;
+        }
+        temp = temp.next;
+      }
+      
+      console.log(tableauLists[i]);
+    }
+
+    if (allFaceUp) {
+      foundationSlots = document.querySelectorAll('.upper-slot');
+      tableauSlots.forEach(slot => slot.innerHTML = '');
+      foundationSlots.forEach((slot, i) => {
+        slot.innerHTML = '';
+        slot.innerText = suits[i];
+        for (let r of ranks) {
+          const card = new StockCard(suits[i], r, true);
+          slot.appendChild(card.element);
+        }
+      });
+      updateScore(scoreCount * 10);
+      showWinOverlay();
+    }
   }
 }
 
+
 function showWinOverlay() {
   stopTimer();
+  const timeEl = document.getElementById('Time');
+  const scoreEl = document.getElementById('ScoreDiv');
+
+  const time = timeEl ? timeEl.innerText : '00:00';
+  const score = scoreEl ? scoreEl.innerText : 'Score: 100';
+
   const winOverlay = document.createElement('div');
   winOverlay.classList.add('win-overlay');
   winOverlay.innerHTML = `
     <div class="win-popup">
       <h2>🎉 Congratulations!</h2>
       <p>You solved the game!</p>
-      <p>Time: <b>${document.querySelector('#Time').innerText}</b></p>
-      <p><b>${parseInt(document.getElementById('#ScoreDiv').innerText)}</b></p>
+      <p>Time: <b>${time}</b></p>
+      <p><b>${score}</b></p>
       <button onclick="window.location.reload()">Play Again</button>
     </div>
-  `;
-  document.body.appendChild(winOverlay);
+  `; document.body.appendChild(winOverlay);
 
   // Optional fade-out animation (enable later)
   // setTimeout(() => {
