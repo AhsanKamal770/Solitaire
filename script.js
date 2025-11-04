@@ -471,7 +471,6 @@ class Card {
   }
 }
 
-// Optional: Extend for Stock-specific behavior
 class StockCard extends Card {
   constructor(suit, rank, faceUp = false) {
     super(suit, rank, faceUp);
@@ -940,9 +939,7 @@ function recycleStock() {
   }
 }
 
-document.querySelector('.slot').addEventListener('click', () => {
-  recycleStock();
-});
+document.querySelector('.slot').addEventListener('click', () => { recycleStock(); });
 
 function getRankValue(rank) {
   const order = {
@@ -958,10 +955,7 @@ function getColor(suit) {
 }
 
 
-
-document.querySelector("#New-Game").addEventListener("click", () => {
-  location.reload();
-});
+document.querySelector("#New-Game").addEventListener("click", () => { location.reload(); });
 
 // document.querySelector("#navbar button:nth-child(1)")?.addEventListener("click", undoMove);
 document.querySelector("#Hint")?.removeEventListener("click", showHint);
@@ -1255,9 +1249,8 @@ function startTimer() {
     timeEl.textContent = `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
   }, 1000);
 }
-document.addEventListener('DOMContentLoaded', () => {
-  startTimer(); // ya button event listener attach karo yahan
-});
+document.addEventListener('DOMContentLoaded', () => { startTimer(); });
+
 function stopTimer() {
   clearInterval(timerInterval);
 }
@@ -1296,41 +1289,70 @@ document.getElementById('New-Game').addEventListener('click', () => {
 });
 
 function checkWinCondition() {
-
+  // Condition: stock is empty and supplementary list is empty
   if (stockQueue.isEmpty() && supplementaryList.size() === 0) {
     let allFaceUp = true;
 
-    // Verify all tableau cards are face-up
-    let scoreCount = 0; 
+    // Check if all tableau cards are face-up
+    let scoreCount = 0;
     for (let i = 0; i < 7 && allFaceUp; i++) {
       let temp = tableauLists[i].getHead();
       while (temp) {
-        scoreCount += 1;
+        scoreCount++;
         if (!temp.data.faceUp) {
           allFaceUp = false;
           break;
         }
         temp = temp.next;
       }
-      
-      console.log(tableauLists[i]);
     }
 
+    // If all tableau cards are face-Up show Solve Button
     if (allFaceUp) {
-      foundationSlots = document.querySelectorAll('.upper-slot');
-      tableauSlots.forEach(slot => slot.innerHTML = '');
-      foundationSlots.forEach((slot, i) => {
-        slot.innerHTML = '';
-        slot.innerText = suits[i];
-        for (let r of ranks) {
-          const card = new StockCard(suits[i], r, true);
-          slot.appendChild(card.element);
-        }
-      });
-      updateScore(scoreCount * 10);
-      showWinOverlay();
+      const supplementarySlot = document.querySelector('.slot-supplementary-slot');
+      
+      // Avoid creating multiple Solve buttons
+      if (!document.querySelector('.solve-button')) {
+        const solveBtn = document.createElement('button');
+        solveBtn.className = 'solve-button';
+        solveBtn.textContent = 'Solve 🔮';
+        solveBtn.style.padding = '8px 16px';
+        solveBtn.style.fontSize = '16px';
+        solveBtn.style.fontWeight = 'bold';
+        solveBtn.style.cursor = 'pointer';
+        solveBtn.style.borderRadius = '8px';
+        solveBtn.style.border = '2px solid gold';
+        solveBtn.style.background = 'linear-gradient(135deg, #ffea00, #ffcc00)';
+        solveBtn.style.boxShadow = '0 0 12px rgba(255,215,0,0.8)';
+        supplementarySlot.appendChild(solveBtn);
+
+        // Add click event
+        solveBtn.addEventListener('click', () => {
+          autoCompleteGame(scoreCount);
+          solveBtn.remove(); // remove button after use
+        });
+      }
     }
   }
+}
+
+// Helper: Move all cards to foundations and end game
+function autoCompleteGame(scoreCount) {
+  const foundationSlots = document.querySelectorAll('.upper-slot');
+  const tableauSlots = Array.from(document.querySelectorAll('.slot')).slice(-7);
+  tableauSlots.forEach(slot => (slot.innerHTML = ''));
+
+  foundationSlots.forEach((slot, i) => {
+    slot.innerHTML = '';
+    slot.innerText = suits[i];
+    for (let r of ranks) {
+      const card = new StockCard(suits[i], r, true);
+      slot.appendChild(card.element);
+    }
+  });
+
+  updateScore(scoreCount * 10);
+  showWinOverlay();
 }
 
 
