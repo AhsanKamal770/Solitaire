@@ -436,8 +436,6 @@ class Card {
     this.element.dataset.rank = rank;
     this.element.style.position = 'absolute';
     this.element.style.left = '0';
-    this.element.style.width = '7.5vw';
-    this.element.style.height = '18vh';
     this.element.style.backgroundSize = 'cover';
     this.element.style.backgroundPosition = 'center';
     this.element.cardInstance = this; // link DOM element back to instance
@@ -841,27 +839,68 @@ function updateDataStructures(fromSlot, toSlot, stack) {
 }
 // Event listener  
 document.querySelectorAll('.slot, .slot-supplementary-slot, .upper-slot').forEach(slot => {
-  slot.addEventListener('mousedown', e => {
-    const card = e.target.closest('.StockCards');
-    if (!card || !card.cardInstance || !card.cardInstance.faceUp) return;
-
-    const originalSlot = card.parentElement;
-    const draggedStack = getDraggedStack(card);
-
-    moveStack(draggedStack, e.pageX, e.pageY);
-
-    function onMove(ev) { moveStack(draggedStack, ev.pageX, ev.pageY); }
-    document.addEventListener('mousemove', onMove);
-
-    document.addEventListener('mouseup', function onUp() {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-      releaseStack(draggedStack, originalSlot);
-
-      checkWinCondition();
-    }, { once: true });
-  });
+  slot.addEventListener('mousedown', startDrag);
+  slot.addEventListener('touchstart', startDrag, { passive: false });
 });
+
+function startDrag(e) {
+  
+  const isTouch = e.type === 'touchstart';
+  const point = isTouch ? e.touches[0] : e;
+  const card = e.target.closest('.StockCards');
+  if (!card || !card.cardInstance || !card.cardInstance.faceUp) return;
+
+  const originalSlot = card.parentElement;
+  const draggedStack = getDraggedStack(card);
+  moveStack(draggedStack, point.pageX, point.pageY);
+
+  function onMove(ev) {
+    const movePoint = ev.touches ? ev.touches[0] : ev;
+    moveStack(draggedStack, movePoint.pageX, movePoint.pageY);
+  }
+
+  function onUp(ev) {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    document.removeEventListener('touchmove', onMove);
+    document.removeEventListener('touchend', onUp);
+
+    releaseStack(draggedStack, originalSlot);
+    checkWinCondition();
+  }
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+  document.addEventListener('touchmove', onMove, { passive: false });
+  document.addEventListener('touchend', onUp);
+}
+// console.log(cardPositions);
+
+function updateSupplementarySlotDisplay(slot) {
+
+  // Decide Order via Supplementary List
+  const orderedCards = [];
+  let temp = supplementaryList.getHead();
+  while (temp) {
+    const { rank, suit } = temp.data;
+    const card = Array.from(slot.querySelectorAll('.StockCards'))
+      .find(c => c.dataset.rank === rank && c.dataset.suit === suit);
+    if (card) orderedCards.push(card);
+    temp = temp.next;
+  }
+
+  const total = orderedCards.length;
+  const visibleCount = 3;
+  const start = Math.max(0, total - visibleCount);
+
+  orderedCards.forEach((card, i) => {
+    card.style.position = 'absolute';
+    card.style.top = '0';
+    card.style.left = i >= start ? `${(i - start) * 20}px` : '0';
+    card.style.zIndex = i + 1;
+    card.style.display = 'block';
+  });
+}
 // console.log(cardPositions);
 
 function updateSupplementarySlotDisplay(slot) {
