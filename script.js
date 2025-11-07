@@ -493,7 +493,7 @@ for (let s of suits) {
   }
 }
 // Convert linked list to array
-const deckArray = [];
+let deckArray = [];
 let temp = deckList.getHead();
 while (temp) {
   deckArray.push(temp.data);
@@ -565,19 +565,25 @@ function isValidDeck(deck) {
   );
 }
 
-// --- Fisher–Yates shuffle with validation loop ---
-let valid = false;
-let attempts = 0;
-do {
-  attempts++;
-  for (let i = deckArray.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [deckArray[i], deckArray[j]] = [deckArray[j], deckArray[i]];
-  }
+// --- Shuffle with validation loop ---
+const maxAttempts = 1000;
+function shuffleDeck(deckArray) {
+  let valid = false;
+  let attempts = 0;
+  do {
+    attempts++;
+    for (let i = deckArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deckArray[i], deckArray[j]] = [deckArray[j], deckArray[i]];
+    }
 
-  valid = isValidDeck(deckArray);
+    valid = isValidDeck(deckArray);
+  } while (!valid && attempts < maxAttempts);
+  
+  return deckArray;
+}
 
-} while (!valid);
+deckArray = shuffleDeck(deckArray);
 
 // --- Stockpile Queue ---
 const tempQueue = new Queue(52);
@@ -851,7 +857,7 @@ document.querySelectorAll('.slot, .slot-supplementary-slot, .upper-slot').forEac
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
       releaseStack(draggedStack, originalSlot);
-      
+
       checkWinCondition();
     }, { once: true });
   });
@@ -939,7 +945,9 @@ function recycleStock() {
   }
 }
 
-document.querySelector('.slot').addEventListener('click', () => { recycleStock(); });
+document.querySelector('.slot').addEventListener('click', () => {
+  recycleStock();
+});
 
 function getRankValue(rank) {
   const order = {
@@ -955,7 +963,10 @@ function getColor(suit) {
 }
 
 
-document.querySelector("#New-Game").addEventListener("click", () => { location.reload(); });
+
+document.querySelector("#New-Game").addEventListener("click", () => {
+  location.reload();
+});
 
 // document.querySelector("#navbar button:nth-child(1)")?.addEventListener("click", undoMove);
 document.querySelector("#Hint")?.removeEventListener("click", showHint);
@@ -1249,8 +1260,9 @@ function startTimer() {
     timeEl.textContent = `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
   }, 1000);
 }
-document.addEventListener('DOMContentLoaded', () => { startTimer(); });
-
+document.addEventListener('DOMContentLoaded', () => {
+  startTimer(); // ya button event listener attach karo yahan
+});
 function stopTimer() {
   clearInterval(timerInterval);
 }
@@ -1263,6 +1275,12 @@ function updateScore(points) {
   score += points;
   if (score < 0) score = 0; // score kabhi negative na ho
   document.getElementById('ScoreDiv').innerText = `Score: ${score}`;
+}
+
+function updateScoreAuto(scoreCount){
+  for (let i = 1; i <= scoreCount; i++) {
+    updateScore(10);
+  }
 }
 
 function onMoveToFoundation() {
@@ -1310,7 +1328,7 @@ function checkWinCondition() {
     // If all tableau cards are face-Up show Solve Button
     if (allFaceUp) {
       const supplementarySlot = document.querySelector('.slot-supplementary-slot');
-      
+
       // Avoid creating multiple Solve buttons
       if (!document.querySelector('.solve-button')) {
         const solveBtn = document.createElement('button');
@@ -1351,10 +1369,9 @@ function autoCompleteGame(scoreCount) {
     }
   });
 
-  updateScore(scoreCount * 10);
+  updateScoreAuto(scoreCount);
   showWinOverlay();
 }
-
 
 function showWinOverlay() {
   stopTimer();
